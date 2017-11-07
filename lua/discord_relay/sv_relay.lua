@@ -20,7 +20,7 @@ for k, v in pairs(DiscordRelay.FileLocations) do
 	DiscordRelay[k] = util.JSONToTable(file.Read(v, "DATA") or "") or {}
 end
 
-http.Loaded = false
+http.Loaded = http.Loaded and http.Loaded or false
 local function checkHTTP()
 	http.Post("https://google.com", {}, function()
 		http.Loaded = true
@@ -28,14 +28,16 @@ local function checkHTTP()
 		http.Loaded = true
 	end)
 end
-timer.Create("HTTPLoadedCheck", 3, 0, function()
-	if not http.Loaded then
-		checkHTTP()
-	else
-		hook.Run("HTTPLoaded")
-		timer.Remove("HTTPLoadedCheck")
-	end
-end)
+if not http.Loaded then
+	timer.Create("HTTPLoadedCheck", 3, 0, function()
+		if not http.Loaded then
+			checkHTTP()
+		else
+			hook.Run("HTTPLoaded")
+			timer.Remove("HTTPLoadedCheck")
+		end
+	end)
+end
 -- Thanks Author. for this bypass. Need to know when HTTP loads so we can gather some info about the bot and shit
 hook.Add("HTTPLoaded", "GetSelf", function()
 	HTTP({
@@ -238,7 +240,7 @@ DiscordRelay.HexColors = {
 DiscordRelay.Commands = {
 	status = function(msg)
 		local time = CurTime()
-		local uptime = string.format("Uptime: %.2d:%.2d:%.2d",
+		local uptime = string.format("**Uptime**: %.2d:%.2d:%.2d",
 			math.floor(CurTime() / 60 / 60), -- hours
 			math.floor(CurTime() / 60 % 60), -- minutes
 			math.floor(CurTime() % 60) -- seconds
@@ -255,7 +257,7 @@ DiscordRelay.Commands = {
 					url = "http://gmlounge.us/join",
 					icon_url = "https://gmlounge.us/media/redream-logo.png"
 				},
-				description = uptime .. " - Map: " .. game.GetMap(),
+				description = uptime .. " - **Map**: " .. game.GetMap(),
 				fields = {
 					{
 						name = "Players: " .. player.GetCount() .. " / " .. game.MaxPlayers(),
