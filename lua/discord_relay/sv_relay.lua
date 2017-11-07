@@ -177,6 +177,13 @@ function DiscordRelay.HandleChat(code, body, headers)
 			end
 		end
 
+		if body[i].embeds then
+			for k, embed in next, body[i].embeds do
+				if embed.title and embed.description then
+					body[i].content = embed.title .. " - " .. embed.description
+				end
+			end
+		end
 		if string.len(body[i].content) > 126 then
 			if not gotitalready then
 				DiscordRelay.SendToDiscordRaw(nil, nil, "Sorry " .. body[i].author.username .. ", but that message was too long and wasn't relayed.")
@@ -194,15 +201,14 @@ function DiscordRelay.HandleChat(code, body, headers)
 			file.Write(DiscordRelay.FileLocations.ReceivedMessages, util.TableToJSON(DiscordRelay.ReceivedMessages))
 			continue
 		end
-
 		if body[i].mentions then
-			for k, v in pairs(body[i].mentions) do
-				local tofind = "(<@" .. v.id .. ">)"
+			for k, v in next, body[i].mentions do
+				local tofind = "(<@!?" .. v.id .. ">)"
 				local toreplace = "@" .. v.username
 				body[i].content = string.gsub(body[i].content, tofind, toreplace)
 			end
 		end
-		body[i].content = body[i].content:gsub("<(:.*:)%d+>", "%1") -- custom emoji fix
+		body[i].content = body[i].content:gsub("<(:%w*:)%d+>", "%1") -- custom emoji fix
 
 		if gotitalready == false then
 			MsgC(COLOR_DISCORD, "[Discord] ", COLOR_USERNAME, body[i].author.username, COLOR_COLON, ": ", COLOR_MESSAGE, body[i].content, "\n")
@@ -220,8 +226,18 @@ function DiscordRelay.HandleChat(code, body, headers)
 					callback(body[i], args)
 				end
 			else
+				local username = body[i].author.username
+				if DiscordRelay.Members then
+					for _, user in next, DiscordRelay.Members do
+						if user.user.username == username and user.nick then
+							username = user.nick
+						end
+					end
+				else
+					DiscordRelay.GetMembers()
+				end
 				net.Start("DiscordRelay_MessageReceived")
-					net.WriteString(body[i].author.username)
+					net.WriteString(username)
 					net.WriteString(msg)
 				net.Broadcast()
 			end
@@ -255,7 +271,57 @@ function DiscordRelay.GetMessages()
 			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
 		end,
 		success = DiscordRelay.HandleChat,
-		url = "http://ptb.discordapp.com/api/channels/" .. DiscordRelay.DiscordChannelID .. "/messages",
+		url = "http://discordapp.com/api/channels/" .. DiscordRelay.DiscordChannelID .. "/messages",
+		method = "GET",
+		headers = {
+			Authorization = "Bot " .. DiscordRelay.BotToken
+		}
+	}
+
+	HTTP(t_struct)
+end
+function DiscordRelay.GetGuild()
+	if not DiscordRelay.BotToken or DiscordRelay.BotToken == "" then
+		Error("Invalid Bot Token!")
+	end
+
+	if not DiscordRelay.DiscordGuildID or DiscordRelay.DiscordGuildID == "" then
+		Error("Invalid Guild ID.")
+	end
+
+	local t_struct = {
+		failed = function(err)
+			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
+		end,
+		success = function(code, body, headers)
+			DiscordRelay.Guild = util.JSONToTable(body)
+		end,
+		url = "http://discordapp.com/api/guilds/" .. DiscordRelay.DiscordGuildID,
+		method = "GET",
+		headers = {
+			Authorization = "Bot " .. DiscordRelay.BotToken
+		}
+	}
+
+	HTTP(t_struct)
+end
+function DiscordRelay.GetMembers()
+	if not DiscordRelay.BotToken or DiscordRelay.BotToken == "" then
+		Error("Invalid Bot Token!")
+	end
+
+	if not DiscordRelay.DiscordGuildID or DiscordRelay.DiscordGuildID == "" then
+		Error("Invalid Guild ID.")
+	end
+
+	local t_struct = {
+		failed = function(err)
+			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
+		end,
+		success = function(code, body, headers)
+			DiscordRelay.Members = util.JSONToTable(body)
+		end,
+		url = "http://discordapp.com/api/guilds/" .. DiscordRelay.DiscordGuildID .. "/members?limit=1000",
 		method = "GET",
 		headers = {
 			Authorization = "Bot " .. DiscordRelay.BotToken
@@ -270,14 +336,31 @@ hook.Add("Think", "Discord_Check_Messages", function()
 		DiscordRelay.NextRunTime = SysTime() + DiscordRelay.MessageDelay
 	end
 end)
+timer.Create("Discord_GuildInfo", 60, 0, function()
+	DiscordRelay.GetMembers()
+	DiscordRelay.GetGuild()
+end)
 
 -- To Discord
 hook.Add("PlayerSay", "Discord_Webhook_Chat", function(ply, text, teamchat)
-	local nick = ply.RealName and ply:RealName() or ply:Nick()
+	local nick = ply:Nick()
 	local sid = ply:SteamID()
 	local sid64 = ply:SteamID64()
 
-	local nick = ply:Nick()
+	local text = text:gsub("(@everyone)", "\\@no one")
+	if DiscordRelay.Members then
+		text = text:gsub("@(%w+)", function(name)
+			for _, user in next, DiscordRelay.Members do
+				local username = user.nick or user.user.username
+				if username:lower():match(name:lower()) then
+					return "<@" .. user.user.id .. ">"
+				end
+			end
+		end)
+	else
+		DiscordRelay.GetMembers()
+	end
+
 	http.Fetch("http://steamcommunity.com/profiles/" .. sid64 .. "?xml=1", function(content, size)
 		local avatar = content:match("<avatarFull><!%[CDATA%[(.-)%]%]></avatarFull>")
 		DiscordRelay.SendToDiscordRaw(nick, avatar, text)
