@@ -108,11 +108,132 @@ function DiscordRelay.SendToDiscordRaw(username, avatar, message)
 	HTTP(t_struct)
 end
 
+function DiscordRelay.GetGuild()
+	if not DiscordRelay.BotToken or DiscordRelay.BotToken == "" then
+		Error("Invalid Bot Token!")
+	end
+
+	if not DiscordRelay.DiscordGuildID or DiscordRelay.DiscordGuildID == "" then
+		Error("Invalid Guild ID.")
+	end
+
+	local t_struct = {
+		failed = function(err)
+			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
+		end,
+		success = function(code, body, headers)
+			DiscordRelay.Guild = util.JSONToTable(body)
+		end,
+		url = "http://discordapp.com/api/guilds/" .. DiscordRelay.DiscordGuildID,
+		method = "GET",
+		headers = {
+			Authorization = "Bot " .. DiscordRelay.BotToken
+		}
+	}
+
+	HTTP(t_struct)
+end
+function DiscordRelay.GetMembers()
+	if not DiscordRelay.BotToken or DiscordRelay.BotToken == "" then
+		Error("Invalid Bot Token!")
+	end
+
+	if not DiscordRelay.DiscordGuildID or DiscordRelay.DiscordGuildID == "" then
+		Error("Invalid Guild ID.")
+	end
+
+	local t_struct = {
+		failed = function(err)
+			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
+		end,
+		success = function(code, body, headers)
+			DiscordRelay.Members = util.JSONToTable(body)
+		end,
+		url = "http://discordapp.com/api/guilds/" .. DiscordRelay.DiscordGuildID .. "/members?limit=1000",
+		method = "GET",
+		headers = {
+			Authorization = "Bot " .. DiscordRelay.BotToken
+		}
+	}
+
+	HTTP(t_struct)
+end
+local function membersAction(callback)
+	if not DiscordRelay.Members then
+		DiscordRelay.GetMembers()
+		return
+	end
+
+	return callback()
+end
+local function guildAction(callback)
+	if not DiscordRelay.Guild then
+		DiscordRelay.GetGuild()
+		return
+	end
+
+	return callback()
+end
+-- TODO: Separate into other files
+function DiscordRelay.GetMemberByID(id)
+	return membersAction(function()
+		for k, user in next, DiscordRelay.Members do
+			if user.user.id == id then
+				return user
+			end
+		end
+	end)
+end
+function DiscordRelay.MemberHasRoleID(member, roleId)
+	return membersAction(function()
+		for k, user in next, DiscordRelay.Members do
+			if user.user.id == member.id then
+				for k, role in next, user.roles do
+					if role:match(roleId) then
+						return true
+					end
+				end
+			end
+		end
+		return false
+	end)
+end
+function DiscordRelay.GetMemberNick(member)
+	local username = member.username
+	membersAction(function()
+		for _, user in next, DiscordRelay.Members do
+			if user.user.username == username and user.nick then
+				username = user.nick
+			end
+		end
+	end)
+	return username
+end
+
 -- From Discord
 
 util.AddNetworkString("DiscordRelay_MessageReceived")
 
 DiscordRelay.CmdPrefix = "^[%$%.!/]"
+DiscordRelay.AdminRoles = { -- TODO: Use permission system instead
+	["282267464941699072"] = true, -- Boss of this Gym
+	["293169922069102592"] = true, -- Colonel
+	["284101946158219264"] = true, -- Janitor
+}
+function DiscordRelay.IsMemberAdmin(member)
+	for roleId, _ in next, DiscordRelay.AdminRoles do
+		if DiscordRelay.MemberHasRoleID(member, roleId) then
+			return true
+		end
+	end
+	return false
+end
+DiscordRelay.HexColors = {
+	Red = 0xFF4040,
+	LightBlue = 0x40C0FF,
+	Green = 0x7FFF40,
+	Purple = 0x9B65BD
+}
 DiscordRelay.Commands = {
 	status = function(msg)
 		local time = CurTime()
@@ -140,9 +261,46 @@ DiscordRelay.Commands = {
 						value = [[```]] .. players .. [[```]]
 					}
 				},
-				color = 0x40C0FF
+				color = DiscordRelay.HexColors.LightBlue
 			}
 		})
+	end,
+	l = function(msg, args)
+		local nick = DiscordRelay.GetMemberNick(msg.author)
+		local admin = DiscordRelay.IsMemberAdmin(msg.author)
+		local msg
+		local ret
+		if admin then
+			MsgC(COLOR_DISCORD, "[Discord Lua] ", COLOR_MESSAGE, "from ", COLOR_USERNAME, nick .. ": ", COLOR_MESSAGE, args, "\n")
+			local err
+			ret = CompileString(args, "discord_lua", false)
+			if isstring(ret) then
+				msg = {
+					{
+						title = "Lua Error:",
+						description = ret,
+						color = DiscordRelay.HexColors.Red
+					}
+				}
+			else
+				ret = ret()
+				msg = ret and {
+					{
+						title = "Result:",
+						description = "```" .. tostring(ret) .. "```",
+						color = DiscordRelay.HexColors.Purple
+					}
+				} or ":white_check_mark:"
+			end
+		else
+			msg = {
+				{
+					title = "No access!",
+					color = DiscordRelay.HexColors.Red
+				}
+			}
+		end
+		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end
 }
 function DiscordRelay.HandleChat(code, body, headers)
@@ -204,16 +362,7 @@ function DiscordRelay.HandleChat(code, body, headers)
 		if body[i].mentions then
 			for k, v in next, body[i].mentions do
 				local tofind = "(<@!?" .. v.id .. ">)"
-				local username = v.username -- TODO: add helper function for this
-				if DiscordRelay.Members then
-					for _, user in next, DiscordRelay.Members do
-						if user.user.username == username and user.nick then
-							username = user.nick
-						end
-					end
-				else
-					DiscordRelay.GetMembers()
-				end
+				local username = DiscordRelay.GetMemberNick(v)
 				local toreplace = "@" .. username
 				body[i].content = string.gsub(body[i].content, tofind, toreplace)
 			end
@@ -235,22 +384,13 @@ function DiscordRelay.HandleChat(code, body, headers)
 				if callback then
 					callback(body[i], args)
 				end
-			else
-				local username = body[i].author.username
-				if DiscordRelay.Members then
-					for _, user in next, DiscordRelay.Members do
-						if user.user.username == username and user.nick then
-							username = user.nick
-						end
-					end
-				else
-					DiscordRelay.GetMembers()
-				end
-				net.Start("DiscordRelay_MessageReceived")
-					net.WriteString(username)
-					net.WriteString(msg)
-				net.Broadcast()
 			end
+
+			local username = DiscordRelay.GetMemberNick(body[i].author)
+			net.Start("DiscordRelay_MessageReceived")
+				net.WriteString(username)
+				net.WriteString(msg)
+			net.Broadcast()
 
 			table.insert(DiscordRelay.ReceivedMessages, {
 				id = body[i].id,
@@ -290,63 +430,13 @@ function DiscordRelay.GetMessages()
 
 	HTTP(t_struct)
 end
-function DiscordRelay.GetGuild()
-	if not DiscordRelay.BotToken or DiscordRelay.BotToken == "" then
-		Error("Invalid Bot Token!")
-	end
-
-	if not DiscordRelay.DiscordGuildID or DiscordRelay.DiscordGuildID == "" then
-		Error("Invalid Guild ID.")
-	end
-
-	local t_struct = {
-		failed = function(err)
-			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
-		end,
-		success = function(code, body, headers)
-			DiscordRelay.Guild = util.JSONToTable(body)
-		end,
-		url = "http://discordapp.com/api/guilds/" .. DiscordRelay.DiscordGuildID,
-		method = "GET",
-		headers = {
-			Authorization = "Bot " .. DiscordRelay.BotToken
-		}
-	}
-
-	HTTP(t_struct)
-end
-function DiscordRelay.GetMembers()
-	if not DiscordRelay.BotToken or DiscordRelay.BotToken == "" then
-		Error("Invalid Bot Token!")
-	end
-
-	if not DiscordRelay.DiscordGuildID or DiscordRelay.DiscordGuildID == "" then
-		Error("Invalid Guild ID.")
-	end
-
-	local t_struct = {
-		failed = function(err)
-			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
-		end,
-		success = function(code, body, headers)
-			DiscordRelay.Members = util.JSONToTable(body)
-		end,
-		url = "http://discordapp.com/api/guilds/" .. DiscordRelay.DiscordGuildID .. "/members?limit=1000",
-		method = "GET",
-		headers = {
-			Authorization = "Bot " .. DiscordRelay.BotToken
-		}
-	}
-
-	HTTP(t_struct)
-end
 hook.Add("Think", "Discord_Check_Messages", function()
 	if SysTime() >= DiscordRelay.NextRunTime then
 		DiscordRelay.GetMessages()
 		DiscordRelay.NextRunTime = SysTime() + DiscordRelay.MessageDelay
 	end
 end)
-timer.Create("Discord_GuildInfo", 60, 0, function()
+timer.Create("Discord_GuildInfo", 10, 0, function()
 	DiscordRelay.GetMembers()
 	DiscordRelay.GetGuild()
 end)
@@ -394,7 +484,7 @@ hook.Add("player_connect", "Discord_Player_Connect", function(ply)
 					url = "https://steamcommunity.com/profiles/" .. sid64,
 					icon_url = avatar
 				},
-				color = 0x7FFF40
+				color = DiscordRelay.HexColors.Green
 			}
 		})
 	end)
@@ -416,7 +506,7 @@ hook.Add("PlayerDisconnected", "Discord_Player_Disconnect", function(ply)
 					url = "https://steamcommunity.com/profiles/" .. sid64,
 					icon_url = avatar
 				},
-				color = 0xFF4040
+				color = DiscordRelay.HexColors.Red
 			}
 		})
 	end)
