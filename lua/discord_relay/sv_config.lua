@@ -12,6 +12,7 @@ end
 -- Set this to your webhook URL.
 DiscordRelay.WebhookURL = webhook
 
+--[[
 local authkey
 if not file.Exists("cfg/apikey.cfg", "GAME") or file.Read("cfg/apikey.cfg", "GAME") == nil then
 	print("Error! No auth key for Discord relay!")
@@ -21,6 +22,7 @@ else
 end
 -- Set this to your Steam Web API Key
 DiscordRelay.SteamWebAPIKey = authkey
+]]
 
 local token
 if not file.Exists("cfg/relay_bot_token.cfg", "GAME") or file.Read("cfg/relay_bot_token.cfg", "GAME") == nil then

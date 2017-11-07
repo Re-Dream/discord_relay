@@ -40,7 +40,7 @@ end)
 hook.Add("HTTPLoaded", "GetSelf", function()
 	HTTP({
 		failed = function(err)
-			MsgC(Color(255, 0, 0), "HTTP error at line 50: " .. err .. "\n")
+			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
 		end,
 		success = function(code, body, headers)
 			DiscordRelay.Self = util.JSONToTable(body)
@@ -77,58 +77,74 @@ function DiscordRelay.VerifyMessageSuccess(code, body, headers)
 		return false
 	end
 end
-
-function DiscordRelay.SendToDiscord(ply, avatar, text, teamchat)
-	if not ply then return end
-
-	local nick = (ply:Nick() or ply:SteamID())
-
-	if string.len(nick) > 32 then
-		nick = string.sub(nick, 1, 29) .. "..."
+function DiscordRelay.SendToDiscordRaw(username, avatar, message)
+	local t_post = {
+		username = username,
+		avatar_url = avatar,
+	}
+	if istable(message) then
+		t_post.embeds = message
+	else
+		t_post.content = message
 	end
 
-	local t_post = {
-		content = text,
-		username = nick,
-		avatar_url = avatar
-	}
-
-	local t_struct = {
-		failed = function(err)
-			MsgC(Color(255, 0, 0), "HTTP error in sending user message to discord: " .. err .. "\n")
-		end,
-		success = DiscordRelay.VerifyMessageSuccess,
-		method = "post",
-		url = DiscordRelay.WebhookURL,
-		parameters = t_post,
-		type = "application/json; charset=utf-8" --JSON Request type, because I'm a good boy.
-	}
-
-	HTTP(t_struct)
-end
-function DiscordRelay.SendToDiscordRaw(username, avatarurl, message)
-	local t_post = {
-		content = message,
-		username = username or "Unknown",
-		avatar_url = s_image
-	}
-
+	local body = util.TableToJSON(t_post, true)
 	local t_struct = {
 		failed = function(err)
 			MsgC(Color(255, 0, 0), "HTTP error in sending raw message to discord: " .. err .. "\n")
 		end,
 		success = DiscordRelay.VerifyMessageSuccess,
-		method = "post",
+		method = "POST",
 		url = DiscordRelay.WebhookURL,
 		parameters = t_post,
-		type = "application/json; charset=utf-8" -- JSON Request type, because I'm a good boy.
+		body = body,
+		headers = {
+			["Content-Type"] = "application/json",
+			["Content-Length"] = body:len() or "0",
+		},
+		type = "application/json"
 	}
 
 	HTTP(t_struct)
 end
 
+-- From Discord
+
 util.AddNetworkString("DiscordRelay_MessageReceived")
 
+DiscordRelay.CmdPrefix = "^[%$%.!/]"
+DiscordRelay.Commands = {
+	status = function(msg)
+		local time = CurTime()
+		local uptime = string.format("Uptime: %.2d:%.2d:%.2d",
+			math.floor(CurTime() / 60 / 60), -- hours
+			math.floor(CurTime() / 60 % 60), -- minutes
+			math.floor(CurTime() % 60) -- seconds
+		)
+		local players = {}
+		for _, ply in next, player.GetAll() do
+			players[#players + 1] = ply:Nick()
+		end
+		players = table.concat(players, ", ")
+		DiscordRelay.SendToDiscordRaw(nil, nil, {
+			{
+				author = {
+					name = GetHostName(),
+					url = "http://gmlounge.us/join",
+					icon_url = "https://gmlounge.us/media/redream-logo.png"
+				},
+				description = uptime .. " - Map: " .. game.GetMap(),
+				fields = {
+					{
+						name = "Players: " .. player.GetCount() .. " / " .. game.MaxPlayers(),
+						value = [[```]] .. players .. [[```]]
+					}
+				},
+				color = 0x40C0FF
+			}
+		})
+	end
+}
 function DiscordRelay.HandleChat(code, body, headers)
 	if not body then return end
 
@@ -145,7 +161,7 @@ function DiscordRelay.HandleChat(code, body, headers)
 		DiscordRelay.NextRunTime = SysTime() + body.retry_after
 		MsgC(Color(255, 0, 0), "Discord error: You are being rate limited. The relay will not check for messages again for another " .. body.retry_after .. " seconds.\n")
 		ErrorNoHalt("Discord Rate Limiting Detected. Message retrieval will be disabled for approximately " .. body.retry_after .. " seconds.")
-		DiscordRelay.SendToDiscordRaw("Relay", false, "The bot is being rate limited! Players on the server will not see your messages for another " .. body.retry_after .. " seconds.")
+		DiscordRelay.SendToDiscordRaw(nil, nil, "The bot is being rate limited! Players on the server will not see your messages for another " .. body.retry_after .. " seconds.")
 
 		return
 	end
@@ -163,7 +179,7 @@ function DiscordRelay.HandleChat(code, body, headers)
 
 		if string.len(body[i].content) > 126 then
 			if not gotitalready then
-				DiscordRelay.SendToDiscordRaw("Relay", false, "Sorry " .. body[i].author.username .. ", but that message was too long and wasn't relayed.")
+				DiscordRelay.SendToDiscordRaw(nil, nil, "Sorry " .. body[i].author.username .. ", but that message was too long and wasn't relayed.")
 			end
 
 			table.insert(DiscordRelay.ReceivedMessages, {
@@ -175,24 +191,40 @@ function DiscordRelay.HandleChat(code, body, headers)
 				}
 			})
 
-			file.Write(DiscordRelay.FileLocations.ReceivedMessages, util.TableToJSON(DiscordRelay.ReceivedMessages, true))
+			file.Write(DiscordRelay.FileLocations.ReceivedMessages, util.TableToJSON(DiscordRelay.ReceivedMessages))
 			continue
 		end
 
 		if body[i].mentions then
 			for k, v in pairs(body[i].mentions) do
-				local tofind = "(<@!" .. v.id .. ">)"
+				local tofind = "(<@" .. v.id .. ">)"
 				local toreplace = "@" .. v.username
-				body[i].content = string.gsub(body[i].content, tofind, toreplace, 1)
+				body[i].content = string.gsub(body[i].content, tofind, toreplace)
 			end
 		end
+		body[i].content = body[i].content:gsub("<(:.*:)%d+>", "%1") -- custom emoji fix
 
 		if gotitalready == false then
 			MsgC(COLOR_DISCORD, "[Discord] ", COLOR_USERNAME, body[i].author.username, COLOR_COLON, ": ", COLOR_MESSAGE, body[i].content, "\n")
-			net.Start("DiscordRelay_MessageReceived")
-				net.WriteString(body[i].author.username)
-				net.WriteString(body[i].content)
-			net.Broadcast()
+			local msg = body[i].content
+			local prefix = msg:match(DiscordRelay.CmdPrefix)
+
+			if prefix then
+				local cmd = msg:Split(" ")
+				cmd = cmd[1]:sub(prefix:len() + 1):lower()
+
+				local args = msg:sub(prefix:len() + 1 + cmd:len() + 1)
+
+				local callback = DiscordRelay.Commands[cmd:lower()]
+				if callback then
+					callback(body[i], args)
+				end
+			else
+				net.Start("DiscordRelay_MessageReceived")
+					net.WriteString(body[i].author.username)
+					net.WriteString(msg)
+				net.Broadcast()
+			end
 
 			table.insert(DiscordRelay.ReceivedMessages, {
 				id = body[i].id,
@@ -220,11 +252,11 @@ function DiscordRelay.GetMessages()
 
 	local t_struct = {
 		failed = function(err)
-			MsgC(Color(255, 0, 0), "HTTP error at line 256: " .. err .. "\n")
+			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
 		end,
 		success = DiscordRelay.HandleChat,
 		url = "http://ptb.discordapp.com/api/channels/" .. DiscordRelay.DiscordChannelID .. "/messages",
-		method = "get",
+		method = "GET",
 		headers = {
 			Authorization = "Bot " .. DiscordRelay.BotToken
 		}
@@ -239,42 +271,69 @@ hook.Add("Think", "Discord_Check_Messages", function()
 	end
 end)
 
+-- To Discord
 hook.Add("PlayerSay", "Discord_Webhook_Chat", function(ply, text, teamchat)
-	if not IsValid(ply) then return end
-	if ply:IsBot() then return end
+	local nick = ply.RealName and ply:RealName() or ply:Nick()
+	local sid = ply:SteamID()
+	local sid64 = ply:SteamID64()
 
-	http.Fetch("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=" .. DiscordRelay.SteamWebAPIKey .. "&steamids=" .. ply:SteamID64() .. "&format=json", function(body, size, headers, code)
-		local response = util.JSONToTable(body)
-		local plyInfo
-		local image
-		if response then
-			response = response.response
-			if response then
-				if not response.players[1] then
-					image = false
-				else
-					plyInfo = response.players[1]
-					image = plyInfo.avatarfull
-				end
-			end
-		end
-
-		DiscordRelay.SendToDiscord(ply, image, text, teamchat)
+	local nick = ply:Nick()
+	http.Fetch("http://steamcommunity.com/profiles/" .. sid64 .. "?xml=1", function(content, size)
+		local avatar = content:match("<avatarFull><!%[CDATA%[(.-)%]%]></avatarFull>")
+		DiscordRelay.SendToDiscordRaw(nick, avatar, text)
 	end)
 end)
+gameevent.Listen("player_connect")
+hook.Add("player_connect", "Discord_Player_Connect", function(ply)
+	local nick = ply.name
+	local sid = ply.networkid
+	local sid64 = util.SteamIDTo64(ply.networkid)
 
-hook.Add("PlayerConnect", "Discord_Player_Connect", function(ply)
-	-- Player connected message
+	http.Fetch("http://steamcommunity.com/profiles/" .. sid64 .. "?xml=1", function(content, size)
+		local avatar = content:match("<avatarFull><!%[CDATA%[(.-)%]%]></avatarFull>")
+		DiscordRelay.SendToDiscordRaw(nil, nil, {
+			{
+				title = "Join",
+				url = "http://gmlounge.us/join",
+				description = sid .. " / " .. sid64,
+				author = {
+					name = nick .. " is joining the server!",
+					url = "https://steamcommunity.com/profiles/" .. sid64,
+					icon_url = avatar
+				},
+				color = 0x7FFF40
+			}
+		})
+	end)
 end)
 hook.Add("PlayerDisconnected", "Discord_Player_Disconnect", function(ply)
-	-- Player disconnected message
-end)
+	local nick = ply.RealName and ply:RealName() or ply:Nick()
+	local sid = ply:SteamID()
+	local sid64 = ply:SteamID64()
 
+	http.Fetch("http://steamcommunity.com/profiles/" .. sid64 .. "?xml=1", function(content, size)
+		local avatar = content:match("<avatarFull><!%[CDATA%[(.-)%]%]></avatarFull>")
+		DiscordRelay.SendToDiscordRaw(nil, nil, {
+			{
+				title = "Join",
+				url = "http://gmlounge.us/join",
+				description = sid .. " / " .. sid64,
+				author = {
+					name = nick .. "  left the server.",
+					url = "https://steamcommunity.com/profiles/" .. sid64,
+					icon_url = avatar
+				},
+				color = 0xFF4040
+			}
+		})
+	end)
+end)
 hook.Add("HTTPLoaded", "Discord_Announce_Active", function()
 	-- Server turned on
 	hook.Remove("HTTPLoaded", "Discord_Announce_Active") -- Just in case
 end)
 
+-- Initialize
 hook.Add("InitPostEntity", "CreateAFuckingBot", function()
 	if DiscordRelay.AvoidUsingBots == false then
 		print("Adding a bot to kick things off")
