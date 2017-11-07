@@ -314,6 +314,76 @@ DiscordRelay.Commands = {
 			}
 		end
 		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
+	end,
+	rocket = function(msg, args)
+		local admin = DiscordRelay.IsMemberAdmin(msg.author)
+		if not admin then
+			DiscordRelay.SendToDiscordRaw(nil, nil, {
+				{
+					title = "No access!",
+					color = DiscordRelay.HexColors.Red
+				}
+			})
+			return
+		end
+
+		DiscordRelay.SendToDiscordRaw(nil, nil, "Running rocket command...")
+
+		local t_post = {
+			cmd = args
+		}
+		local t_struct = {
+			failed = function(err)
+				MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
+			end,
+			success = function(code, body, headers)
+				local msg
+				if code == 500 then
+					msg = {
+						{
+							title = "Internal Error",
+							color = DiscordRelay.HexColors.Red
+						}
+					}
+				else
+					local desc = "```" .. tostring(body) .. "```"
+					if #desc >= 1995 then
+						desc = desc:sub(0, 1000) .. "\n[...]\n" .. desc:sub(-995)
+						print(desc)
+					end
+					msg = {
+						{
+							title = "Rocket command run, result:",
+							description = desc,
+							color = DiscordRelay.HexColors.Purple
+						}
+					}
+				end
+				DiscordRelay.SendToDiscordRaw(nil, nil, msg)
+			end,
+			method = "POST",
+			url = "https://gmlounge.us/redream/rcon/bot/index.php",
+			parameters = t_post,
+			headers = {
+				Authorization = "Bot " .. DiscordRelay.BotToken
+			}
+		}
+
+		HTTP(t_struct)
+	end,
+	help = function()
+		local helpText = {}
+		for cmd, _ in next, DiscordRelay.Commands do
+			helpText[#helpText + 1] = cmd
+		end
+		helpText = table.concat(helpText, ", ")
+		DiscordRelay.SendToDiscordRaw(nil, nil, {
+			{
+				title = "Available commands:",
+				description = "```" .. helpText .. "```",
+				color = DiscordRelay.HexColors.Purple
+			}
+		})
 	end
 }
 function DiscordRelay.HandleChat(code, body, headers)
