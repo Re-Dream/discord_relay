@@ -204,7 +204,17 @@ function DiscordRelay.HandleChat(code, body, headers)
 		if body[i].mentions then
 			for k, v in next, body[i].mentions do
 				local tofind = "(<@!?" .. v.id .. ">)"
-				local toreplace = "@" .. v.username
+				local username = v.username -- TODO: add helper function for this
+				if DiscordRelay.Members then
+					for _, user in next, DiscordRelay.Members do
+						if user.user.username == username and user.nick then
+							username = user.nick
+						end
+					end
+				else
+					DiscordRelay.GetMembers()
+				end
+				local toreplace = "@" .. username
 				body[i].content = string.gsub(body[i].content, tofind, toreplace)
 			end
 		end
