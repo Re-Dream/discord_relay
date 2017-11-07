@@ -184,7 +184,7 @@ function DiscordRelay.HandleChat(code, body, headers)
 				end
 			end
 		end
-		if string.len(body[i].content) > 126 then
+		if string.len(body[i].content) > 256 then
 			if not gotitalready then
 				DiscordRelay.SendToDiscordRaw(nil, nil, "Sorry " .. body[i].author.username .. ", but that message was too long and wasn't relayed.")
 			end
