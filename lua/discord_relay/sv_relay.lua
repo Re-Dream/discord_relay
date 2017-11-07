@@ -283,14 +283,24 @@ DiscordRelay.Commands = {
 					}
 				}
 			else
-				ret = ret()
-				msg = ret and {
-					{
-						title = "Result:",
-						description = "```" .. tostring(ret) .. "```",
-						color = DiscordRelay.HexColors.Purple
+				local ok, ret = pcall(ret)
+				if ok == false then
+					msg = {
+						{
+							title = "Lua Error:",
+							description = ret,
+							color = DiscordRelay.HexColors.Red
+						}
 					}
-				} or ":white_check_mark:"
+				else
+					msg = ret and {
+						{
+							title = "Result:",
+							description = "```" .. tostring(ret) .. "```",
+							color = DiscordRelay.HexColors.Purple
+						}
+					} or ":white_check_mark:"
+				end
 			end
 		else
 			msg = {
