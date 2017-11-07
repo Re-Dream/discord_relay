@@ -232,7 +232,8 @@ DiscordRelay.HexColors = {
 	Red = 0xFF4040,
 	LightBlue = 0x40C0FF,
 	Green = 0x7FFF40,
-	Purple = 0x9B65BD
+	Purple = 0x9B65BD,
+	Yellow = 0xFFFF40
 }
 DiscordRelay.Commands = {
 	status = function(msg)
@@ -486,13 +487,17 @@ hook.Add("player_connect", "Discord_Player_Connect", function(ply)
 		local avatar = content:match("<avatarFull><!%[CDATA%[(.-)%]%]></avatarFull>")
 		DiscordRelay.SendToDiscordRaw(nil, nil, {
 			{
-				title = "Join",
-				url = "http://gmlounge.us/join",
-				description = sid .. " / " .. sid64,
 				author = {
 					name = nick .. " is joining the server!",
 					url = "https://steamcommunity.com/profiles/" .. sid64,
 					icon_url = avatar
+				},
+				description = sid .. " / " .. sid64,
+				fields = {
+					{
+						name = "Join",
+						value = "steam://connect/play.gmlounge.us"
+					}
 				},
 				color = DiscordRelay.HexColors.Green
 			}
@@ -508,13 +513,17 @@ hook.Add("PlayerDisconnected", "Discord_Player_Disconnect", function(ply)
 		local avatar = content:match("<avatarFull><!%[CDATA%[(.-)%]%]></avatarFull>")
 		DiscordRelay.SendToDiscordRaw(nil, nil, {
 			{
-				title = "Join",
-				url = "http://gmlounge.us/join",
-				description = sid .. " / " .. sid64,
 				author = {
 					name = nick .. "  left the server.",
 					url = "https://steamcommunity.com/profiles/" .. sid64,
 					icon_url = avatar
+				},
+				description = sid .. " / " .. sid64,
+				fields = {
+					{
+						name = "Join",
+						value = "steam://connect/play.gmlounge.us"
+					}
 				},
 				color = DiscordRelay.HexColors.Red
 			}
@@ -522,7 +531,23 @@ hook.Add("PlayerDisconnected", "Discord_Player_Disconnect", function(ply)
 	end)
 end)
 hook.Add("HTTPLoaded", "Discord_Announce_Active", function()
-	-- Server turned on
+	DiscordRelay.SendToDiscordRaw(nil, nil, {
+		{
+			author = {
+				name = GetHostName(),
+				url = "http://gmlounge.us/join",
+				icon_url = "https://gmlounge.us/media/redream-logo.png"
+			},
+			description = "is now online, playing **" .. game.GetMap() .. "**.",
+			fields = {
+				{
+					name = "Join",
+					value = "steam://connect/play.gmlounge.us"
+				}
+			},
+			color = DiscordRelay.HexColors.Yellow
+		}
+	})
 	hook.Remove("HTTPLoaded", "Discord_Announce_Active") -- Just in case
 end)
 
