@@ -79,6 +79,14 @@ function DiscordRelay.VerifyMessageSuccess(code, body, headers)
 		return false
 	end
 end
+
+DiscordRelay.HexColors = {
+	Red = 0xFF4040,
+	LightBlue = 0x40C0FF,
+	Green = 0x7FFF40,
+	Purple = 0x9B65BD,
+	Yellow = 0xFFFF40
+}
 function DiscordRelay.SendToDiscordRaw(username, avatar, message)
 	local t_post = {
 		username = username,
@@ -110,282 +118,13 @@ function DiscordRelay.SendToDiscordRaw(username, avatar, message)
 	HTTP(t_struct)
 end
 
-function DiscordRelay.GetGuild()
-	if not DiscordRelay.BotToken or DiscordRelay.BotToken == "" then
-		Error("Invalid Bot Token!")
-	end
-
-	if not DiscordRelay.DiscordGuildID or DiscordRelay.DiscordGuildID == "" then
-		Error("Invalid Guild ID.")
-	end
-
-	local t_struct = {
-		failed = function(err)
-			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
-		end,
-		success = function(code, body, headers)
-			DiscordRelay.Guild = util.JSONToTable(body)
-		end,
-		url = "http://discordapp.com/api/guilds/" .. DiscordRelay.DiscordGuildID,
-		method = "GET",
-		headers = {
-			Authorization = "Bot " .. DiscordRelay.BotToken
-		}
-	}
-
-	HTTP(t_struct)
-end
-function DiscordRelay.GetMembers()
-	if not DiscordRelay.BotToken or DiscordRelay.BotToken == "" then
-		Error("Invalid Bot Token!")
-	end
-
-	if not DiscordRelay.DiscordGuildID or DiscordRelay.DiscordGuildID == "" then
-		Error("Invalid Guild ID.")
-	end
-
-	local t_struct = {
-		failed = function(err)
-			MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
-		end,
-		success = function(code, body, headers)
-			DiscordRelay.Members = util.JSONToTable(body)
-		end,
-		url = "http://discordapp.com/api/guilds/" .. DiscordRelay.DiscordGuildID .. "/members?limit=1000",
-		method = "GET",
-		headers = {
-			Authorization = "Bot " .. DiscordRelay.BotToken
-		}
-	}
-
-	HTTP(t_struct)
-end
-local function membersAction(callback)
-	if not DiscordRelay.Members then
-		DiscordRelay.GetMembers()
-		return
-	end
-
-	return callback()
-end
-local function guildAction(callback)
-	if not DiscordRelay.Guild then
-		DiscordRelay.GetGuild()
-		return
-	end
-
-	return callback()
-end
--- TODO: Separate into other files
-function DiscordRelay.GetMemberByID(id)
-	return membersAction(function()
-		for k, user in next, DiscordRelay.Members do
-			if user.user.id == id then
-				return user
-			end
-		end
-	end)
-end
-function DiscordRelay.MemberHasRoleID(member, roleId)
-	return membersAction(function()
-		for k, user in next, DiscordRelay.Members do
-			if user.user.id == member.id then
-				for k, role in next, user.roles do
-					if role:match(roleId) then
-						return true
-					end
-				end
-			end
-		end
-		return false
-	end)
-end
-function DiscordRelay.GetMemberNick(member)
-	local username = member.username
-	membersAction(function()
-		for _, user in next, DiscordRelay.Members do
-			if user.user.username == username and user.nick then
-				username = user.nick
-			end
-		end
-	end)
-	return username
-end
+include("sv_api.lua")
+include("sv_commands.lua")
 
 -- From Discord
 
 util.AddNetworkString("DiscordRelay_MessageReceived")
 
-DiscordRelay.CmdPrefix = "^[%$%.!/]"
-DiscordRelay.AdminRoles = { -- TODO: Use permission system instead
-	["282267464941699072"] = true, -- Boss of this Gym
-	["293169922069102592"] = true, -- Colonel
-	["284101946158219264"] = true, -- Janitor
-}
-function DiscordRelay.IsMemberAdmin(member)
-	for roleId, _ in next, DiscordRelay.AdminRoles do
-		if DiscordRelay.MemberHasRoleID(member, roleId) then
-			return true
-		end
-	end
-	return false
-end
-DiscordRelay.HexColors = {
-	Red = 0xFF4040,
-	LightBlue = 0x40C0FF,
-	Green = 0x7FFF40,
-	Purple = 0x9B65BD,
-	Yellow = 0xFFFF40
-}
-DiscordRelay.Commands = {
-	status = function(msg)
-		local time = CurTime()
-		local uptime = string.format("**Uptime**: %.2d:%.2d:%.2d",
-			math.floor(CurTime() / 60 / 60), -- hours
-			math.floor(CurTime() / 60 % 60), -- minutes
-			math.floor(CurTime() % 60) -- seconds
-		)
-		local players = {}
-		for _, ply in next, player.GetAll() do
-			players[#players + 1] = ply:Nick()
-		end
-		players = table.concat(players, ", ")
-		DiscordRelay.SendToDiscordRaw(nil, nil, {
-			{
-				author = {
-					name = GetHostName(),
-					url = "http://gmlounge.us/join",
-					icon_url = "https://gmlounge.us/media/redream-logo.png"
-				},
-				description = uptime .. " - **Map**: " .. game.GetMap(),
-				fields = {
-					{
-						name = "Players: " .. player.GetCount() .. " / " .. game.MaxPlayers(),
-						value = [[```]] .. players .. [[```]]
-					}
-				},
-				color = DiscordRelay.HexColors.LightBlue
-			}
-		})
-	end,
-	l = function(msg, args)
-		local nick = DiscordRelay.GetMemberNick(msg.author)
-		local admin = DiscordRelay.IsMemberAdmin(msg.author)
-		local msg
-		local ret
-		if admin then
-			MsgC(COLOR_DISCORD, "[Discord Lua] ", COLOR_MESSAGE, "from ", COLOR_USERNAME, nick .. ": ", COLOR_MESSAGE, args, "\n")
-			local err
-			ret = CompileString(args, "discord_lua", false)
-			if isstring(ret) then
-				msg = {
-					{
-						title = "Lua Error:",
-						description = ret,
-						color = DiscordRelay.HexColors.Red
-					}
-				}
-			else
-				local ok, ret = pcall(ret)
-				if ok == false then
-					msg = {
-						{
-							title = "Lua Error:",
-							description = ret,
-							color = DiscordRelay.HexColors.Red
-						}
-					}
-				else
-					msg = ret and {
-						{
-							title = "Result:",
-							description = "```" .. tostring(ret) .. "```",
-							color = DiscordRelay.HexColors.Purple
-						}
-					} or ":white_check_mark:"
-				end
-			end
-		else
-			msg = {
-				{
-					title = "No access!",
-					color = DiscordRelay.HexColors.Red
-				}
-			}
-		end
-		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
-	end,
-	rocket = function(msg, args)
-		local admin = DiscordRelay.IsMemberAdmin(msg.author)
-		if not admin then
-			DiscordRelay.SendToDiscordRaw(nil, nil, {
-				{
-					title = "No access!",
-					color = DiscordRelay.HexColors.Red
-				}
-			})
-			return
-		end
-
-		DiscordRelay.SendToDiscordRaw(nil, nil, "Running rocket command...")
-
-		local t_post = {
-			cmd = args
-		}
-		local t_struct = {
-			failed = function(err)
-				MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
-			end,
-			success = function(code, body, headers)
-				local msg
-				if code == 500 then
-					msg = {
-						{
-							title = "Internal Error",
-							color = DiscordRelay.HexColors.Red
-						}
-					}
-				else
-					local desc = "```" .. tostring(body) .. "```"
-					if #desc >= 1995 then
-						desc = desc:sub(0, 1000) .. "\n[...]\n" .. desc:sub(-995)
-						print(desc)
-					end
-					msg = {
-						{
-							title = "Rocket command run, result:",
-							description = desc,
-							color = DiscordRelay.HexColors.Purple
-						}
-					}
-				end
-				DiscordRelay.SendToDiscordRaw(nil, nil, msg)
-			end,
-			method = "POST",
-			url = "https://gmlounge.us/redream/rcon/bot/index.php",
-			parameters = t_post,
-			headers = {
-				Authorization = "Bot " .. DiscordRelay.BotToken
-			}
-		}
-
-		HTTP(t_struct)
-	end,
-	help = function()
-		local helpText = {}
-		for cmd, _ in next, DiscordRelay.Commands do
-			helpText[#helpText + 1] = cmd
-		end
-		helpText = table.concat(helpText, ", ")
-		DiscordRelay.SendToDiscordRaw(nil, nil, {
-			{
-				title = "Available commands:",
-				description = "```" .. helpText .. "```",
-				color = DiscordRelay.HexColors.Purple
-			}
-		})
-	end
-}
 function DiscordRelay.HandleChat(code, body, headers)
 	if not body then return end
 
@@ -610,7 +349,7 @@ hook.Add("HTTPLoaded", "Discord_Announce_Active", function()
 				url = "http://gmlounge.us/join",
 				icon_url = "https://gmlounge.us/media/redream-logo.png"
 			},
-			description = "is now online, playing **" .. game.GetMap() .. "**.",
+			description = "is now online, playing `" .. game.GetMap() .. "`.",
 			fields = {
 				{
 					name = "Join",
