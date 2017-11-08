@@ -38,7 +38,7 @@ DiscordRelay.Commands = {
 				fields = {
 					{
 						name = "Players: " .. player.GetCount() .. " / " .. game.MaxPlayers(),
-						value = players:Trim() ~= "" and [[```]] .. players .. [[```]] or ""
+						value = players:Trim() ~= "" and [[```]] .. players .. [[```]] or "It's lonely in here."
 					}
 				},
 				color = DiscordRelay.HexColors.LightBlue
