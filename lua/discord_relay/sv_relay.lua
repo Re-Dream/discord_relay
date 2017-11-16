@@ -118,8 +118,8 @@ function DiscordRelay.SendToDiscordRaw(username, avatar, message)
 	HTTP(t_struct)
 end
 
-include("sv_api.lua")
-include("sv_commands.lua")
+include("discord_relay/sv_api.lua")
+include("discord_relay/sv_commands.lua")
 
 -- From Discord
 
@@ -296,7 +296,7 @@ hook.Add("player_connect", "Discord_Player_Connect", function(ply)
 
 	http.Fetch("http://steamcommunity.com/profiles/" .. sid64 .. "?xml=1", function(content, size)
 		local avatar = content:match("<avatarFull><!%[CDATA%[(.-)%]%]></avatarFull>")
-		DiscordRelay.SendToDiscordRaw(nil, nil, {
+		local msg = {
 			{
 				author = {
 					name = nick .. " is joining the server!",
@@ -304,15 +304,12 @@ hook.Add("player_connect", "Discord_Player_Connect", function(ply)
 					icon_url = avatar
 				},
 				description = sid .. " / " .. sid64,
-				fields = {
-					{
-						name = "Join",
-						value = "steam://connect/play.gmlounge.us"
-					}
-				},
 				color = DiscordRelay.HexColors.Green
 			}
-		})
+		}
+		msg[1].description = msg[1].description .. "\n\n[Join](steam://connect/play.gmlounge.us)"
+
+		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end)
 end)
 hook.Add("PlayerDisconnected", "Discord_Player_Disconnect", function(ply)
@@ -322,7 +319,7 @@ hook.Add("PlayerDisconnected", "Discord_Player_Disconnect", function(ply)
 
 	http.Fetch("http://steamcommunity.com/profiles/" .. sid64 .. "?xml=1", function(content, size)
 		local avatar = content:match("<avatarFull><!%[CDATA%[(.-)%]%]></avatarFull>")
-		DiscordRelay.SendToDiscordRaw(nil, nil, {
+		local msg = {
 			{
 				author = {
 					name = nick .. "  left the server.",
@@ -330,19 +327,16 @@ hook.Add("PlayerDisconnected", "Discord_Player_Disconnect", function(ply)
 					icon_url = avatar
 				},
 				description = sid .. " / " .. sid64,
-				fields = {
-					{
-						name = "Join",
-						value = "steam://connect/play.gmlounge.us"
-					}
-				},
 				color = DiscordRelay.HexColors.Red
 			}
-		})
+		}
+		msg[1].description = msg[1].description .. "\n\n[Join](steam://connect/play.gmlounge.us)"
+
+		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end)
 end)
 hook.Add("HTTPLoaded", "Discord_Announce_Active", function()
-	DiscordRelay.SendToDiscordRaw(nil, nil, {
+	local msg = {
 		{
 			author = {
 				name = GetHostName(),
@@ -350,15 +344,12 @@ hook.Add("HTTPLoaded", "Discord_Announce_Active", function()
 				icon_url = "https://gmlounge.us/media/redream-logo.png"
 			},
 			description = "is now online, playing `" .. game.GetMap() .. "`.",
-			fields = {
-				{
-					name = "Join",
-					value = "steam://connect/play.gmlounge.us"
-				}
-			},
 			color = DiscordRelay.HexColors.Yellow
 		}
-	})
+	}
+	msg[1].description = msg[1].description .. "\n\n[Join](steam://connect/play.gmlounge.us)"
+
+	DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	hook.Remove("HTTPLoaded", "Discord_Announce_Active") -- Just in case
 end)
 
