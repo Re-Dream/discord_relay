@@ -104,7 +104,7 @@ DiscordRelay.Commands = {
 			return
 		end
 
-		DiscordRelay.SendToDiscordRaw(nil, nil, "Running rocket command...")
+		DiscordRelay.SendToDiscordRaw(nil, nil, 'Running rocket command "' .. args .. '"...')
 
 		local t_post = {
 			cmd = args
@@ -129,7 +129,7 @@ DiscordRelay.Commands = {
 					end
 					msg = {
 						{
-							title = "Rocket command run, result:",
+							title = 'Rocket command "' .. args .. '" run, result:',
 							description = desc,
 							color = DiscordRelay.HexColors.Purple
 						}
@@ -165,44 +165,37 @@ DiscordRelay.Commands = {
 
 hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
 	local rocket = mingeban.CreateCommand({"rocket", "liftoff"}, function(caller, line)
-		-- this is hacks
-		local MsgC = function(...)
-			if not IsValid(caller) then return end
-			_G.MsgC(...)
-		end
-		if not IsValid(caller) then
-			caller = {
-				ChatAddText = function(clr, txt)
-					MsgC(clr, txt .. "\n")
-				end,
-				PrintMessage = function(_, msg)
-					print(msg)
-				end
-			}
+		if IsValid(caller) then
+			caller:ChatAddText(Color(155, 255, 64), 'rocket - Running command "'.. line .. '"...')
 		end
 
-		caller:ChatAddText(Color(155, 255, 64), "rocket - Running command...")
-		MsgC(Color(155, 255, 64), "rocket - Running command...\n")
+		Msg"[rocket] "print('Running command "'.. line .. '"...')
 
 		local t_post = {
 			cmd = line
 		}
 		local t_struct = {
 			failed = function(err)
-				_MsgC(Color(255, 64, 64), "HTTP error: " .. err .. "\n")
+				MsgC(Color(255, 64, 64), "HTTP error: " .. err .. "\n")
 			end,
 			success = function(code, body, headers)
 				local msg
 				if code == 500 then
-					caller:ChatAddText(Color(255, 64, 64), "rocket - 500 Internal Error")
-					MsgC(Color(255, 64, 64), "rocket - 500 Internal Error\n")
-				else
-					caller:ChatAddText(Color(155, 255, 64), "rocket - Command run, result in console")
-					MsgC(Color(155, 255, 64), "rocket - Command run, result in console\n")
-
-					for _, line in next, body:Split("\n") do
-						caller:PrintMessage(HUD_PRINTCONSOLE, line)
+					if IsValid(caller) then
+						caller:ChatAddText(Color(255, 64, 64), "rocket - 500 Internal Error")
 					end
+
+					Msg"[rocket] "MsgC(Color(255, 64, 64), "500 Internal Error\n")
+				else
+					if IsValid(caller) then
+						caller:ChatAddText(Color(155, 255, 64), 'rocket - Command "' .. line .. '" run, result in console')
+
+						for _, line in next, body:Split("\n") do
+							caller:PrintMessage(HUD_PRINTCONSOLE, line)
+						end
+					end
+
+					Msg"[rocket] "print('Command "' .. line .. '" run, result in console')
 					MsgC(Color(192, 192, 192), body .. "\n")
 				end
 			end,
