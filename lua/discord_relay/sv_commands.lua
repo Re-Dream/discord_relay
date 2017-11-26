@@ -217,4 +217,7 @@ hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
 		HTTP(t_struct)
 	end)
 end)
+if istable(GAMEMODE) and mingeban then
+	hook.GetTable().MingebanInitialized["DiscordRelay_rocketcommand"]()
+end
 
