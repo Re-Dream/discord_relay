@@ -111,7 +111,7 @@ DiscordRelay.Commands = {
 		}
 		local t_struct = {
 			failed = function(err)
-				MsgC(Color(255, 0, 0), "HTTP error: " .. err .. "\n")
+				MsgC(Color(255, 64, 64), "HTTP error: " .. err .. "\n")
 			end,
 			success = function(code, body, headers)
 				local msg
@@ -126,7 +126,6 @@ DiscordRelay.Commands = {
 					local desc = "```" .. tostring(body) .. "```"
 					if #desc >= 1995 then
 						desc = desc:sub(0, 1000) .. "\n[...]\n" .. desc:sub(-995)
-						print(desc)
 					end
 					msg = {
 						{
@@ -163,4 +162,59 @@ DiscordRelay.Commands = {
 		})
 	end
 }
+
+hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
+	local rocket = mingeban.CreateCommand({"rocket", "liftoff"}, function(caller, line)
+		-- this is hacks
+		local MsgC = function(...)
+			if not IsValid(caller) then return end
+			_G.MsgC(...)
+		end
+		if not IsValid(caller) then
+			caller = {
+				ChatAddText = function(clr, txt)
+					MsgC(clr, txt .. "\n")
+				end,
+				PrintMessage = function(_, msg)
+					print(msg)
+				end
+			}
+		end
+
+		caller:ChatAddText(Color(155, 255, 64), "rocket - Running command...")
+		MsgC(Color(155, 255, 64), "rocket - Running command...\n")
+
+		local t_post = {
+			cmd = line
+		}
+		local t_struct = {
+			failed = function(err)
+				_MsgC(Color(255, 64, 64), "HTTP error: " .. err .. "\n")
+			end,
+			success = function(code, body, headers)
+				local msg
+				if code == 500 then
+					caller:ChatAddText(Color(255, 64, 64), "rocket - 500 Internal Error")
+					MsgC(Color(255, 64, 64), "rocket - 500 Internal Error\n")
+				else
+					caller:ChatAddText(Color(155, 255, 64), "rocket - Command run, result in console")
+					MsgC(Color(155, 255, 64), "rocket - Command run, result in console\n")
+
+					for _, line in next, body:Split("\n") do
+						caller:PrintMessage(HUD_PRINTCONSOLE, line)
+					end
+					MsgC(Color(192, 192, 192), body .. "\n")
+				end
+			end,
+			method = "POST",
+			url = "https://gmlounge.us/redream/rcon/bot/index.php",
+			parameters = t_post,
+			headers = {
+				Authorization = "Bot " .. DiscordRelay.BotToken
+			}
+		}
+
+		HTTP(t_struct)
+	end)
+end)
 
