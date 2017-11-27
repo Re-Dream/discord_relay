@@ -30,11 +30,18 @@ local function checkHTTP()
 end
 if not http.Loaded then
 	timer.Create("HTTPLoadedCheck", 3, 0, function()
-		if not http.Loaded then
-			checkHTTP()
-		else
-			hook.Run("HTTPLoaded")
-			timer.Remove("HTTPLoadedCheck")
+		local ok, err = pcall(function()
+			if not http.Loaded then
+				print("checkHTTP type: ", type(checkHTTP))
+				checkHTTP()
+			else
+				hook.Run("HTTPLoaded")
+				timer.Remove("HTTPLoadedCheck")
+			end
+		end)
+		if not ok then
+			ErrorNoHalt("what the FUCK")
+			ErrorNoHalt(err)
 		end
 	end)
 end
