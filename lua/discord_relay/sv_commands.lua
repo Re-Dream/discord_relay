@@ -14,6 +14,42 @@ function DiscordRelay.IsMemberAdmin(member)
 	return false
 end
 
+local print = print
+local function doEval(func)
+	local msg = {}
+	local ret = { pcall(func) }
+	local ok = ret[1]
+	table.remove(ret, 1)
+	if not ok then
+		msg = {
+			{
+				title = "Lua Error:",
+				description = func,
+				color = DiscordRelay.HexColors.Red
+			}
+		}
+		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
+		return
+	end
+	if ret[1] then
+		for k, v in next, ret do
+			-- TODO: pretty print tables
+			ret[k] = tostring(v)
+		end
+		local res = "```lua\n" .. table.concat(ret, "\t") .. "```"
+		if #res >= 2000 then
+			res = res:sub(1, 1970) .. "```[...]\noutput truncated"
+		end
+		msg = {
+			title = "Result:",
+			description = res,
+			color = DiscordRelay.HexColors.Purple
+		}
+	else
+		msg = ":white_check_mark:"
+	end
+	DiscordRelay.SendToDiscordRaw(nil, nil, msg)
+end
 DiscordRelay.Commands = {
 	status = function(msg)
 		local time = CurTime()
@@ -49,39 +85,39 @@ DiscordRelay.Commands = {
 		local nick = DiscordRelay.GetMemberNick(msg.author)
 		local admin = DiscordRelay.IsMemberAdmin(msg.author)
 		local msg
-		local ret
 		if admin then
 			MsgC(COLOR_DISCORD, "[Discord Lua] ", COLOR_MESSAGE, "from ", COLOR_USERNAME, nick .. ": ", COLOR_MESSAGE, args, "\n")
-			local err
-			ret = CompileString(args, "discord_lua", false)
-			if isstring(ret) then
-				msg = {
-					{
-						title = "Lua Error:",
-						description = ret,
-						color = DiscordRelay.HexColors.Red
-					}
-				}
+			_G.print = function(...)
+				local args = {...}
+				local str = "```lua\n%s```"
+				for k, v in next, args do
+					args[k] = tostring(v):gsub("`", "\\`")
+				end
+				str = str:format(table.concat(args, "\t"))
+				if #str >= 2000 then
+					str = str:sub(1, 1970) .. "```[...]\noutput truncated"
+				end
+				DiscordRelay.SendToDiscordRaw(nil, nil,str)
+			end
+			local func = CompileString("return " .. args, "discord_lua", false)
+			if isfunction(func) then
+				doEval(func)
 			else
-				local ok, ret = pcall(ret)
-				if ok == false then
+				func = CompileString(args, "discord_lua", false)
+				if isfunction(func) then
+					doEval(func)
+				else
 					msg = {
 						{
 							title = "Lua Error:",
-							description = ret,
+							description = func,
 							color = DiscordRelay.HexColors.Red
 						}
 					}
-				else
-					msg = ret and {
-						{
-							title = "Result:",
-							description = "```" .. tostring(ret) .. "```",
-							color = DiscordRelay.HexColors.Purple
-						}
-					} or ":white_check_mark:"
+					DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 				end
 			end
+			_G.print = print
 		else
 			msg = {
 				{
