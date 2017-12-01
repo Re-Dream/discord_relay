@@ -14,7 +14,6 @@ function DiscordRelay.IsMemberAdmin(member)
 	return false
 end
 
-local print = print
 local function doEval(func)
 	local msg = {}
 	local ret = { pcall(func) }
@@ -41,9 +40,11 @@ local function doEval(func)
 			res = res:sub(1, 1970) .. "```[...]\noutput truncated"
 		end
 		msg = {
-			title = "Result:",
-			description = res,
-			color = DiscordRelay.HexColors.Purple
+			{
+				title = "Result:",
+				description = res,
+				color = DiscordRelay.HexColors.Purple
+			}
 		}
 	else
 		msg = ":white_check_mark:"
@@ -84,9 +85,9 @@ DiscordRelay.Commands = {
 	l = function(msg, args)
 		local nick = DiscordRelay.GetMemberNick(msg.author)
 		local admin = DiscordRelay.IsMemberAdmin(msg.author)
-		local msg
 		if admin then
 			MsgC(COLOR_DISCORD, "[Discord Lua] ", COLOR_MESSAGE, "from ", COLOR_USERNAME, nick .. ": ", COLOR_MESSAGE, args, "\n")
+			local print = _G.print
 			_G.print = function(...)
 				local args = {...}
 				local str = "```lua\n%s```"
@@ -97,7 +98,7 @@ DiscordRelay.Commands = {
 				if #str >= 2000 then
 					str = str:sub(1, 1970) .. "```[...]\noutput truncated"
 				end
-				DiscordRelay.SendToDiscordRaw(nil, nil,str)
+				DiscordRelay.SendToDiscordRaw(nil, nil, str)
 			end
 			local func = CompileString("return " .. args, "discord_lua", false)
 			if isfunction(func) then
@@ -107,7 +108,7 @@ DiscordRelay.Commands = {
 				if isfunction(func) then
 					doEval(func)
 				else
-					msg = {
+					local msg = {
 						{
 							title = "Lua Error:",
 							description = func,
@@ -119,14 +120,14 @@ DiscordRelay.Commands = {
 			end
 			_G.print = print
 		else
-			msg = {
+			local msg = {
 				{
 					title = "No access!",
 					color = DiscordRelay.HexColors.Red
 				}
 			}
+			DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 		end
-		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end,
 	rocket = function(msg, args)
 		local admin = DiscordRelay.IsMemberAdmin(msg.author)
