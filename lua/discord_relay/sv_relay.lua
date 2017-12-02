@@ -199,7 +199,6 @@ function DiscordRelay.HandleChat(code, body, headers)
 			for _, attachment in next, body[i].attachments do
 				body[i].content = attachment.url .. " " .. body[i].content
 			end
-			body[i].content = "\n" .. body[i].content
 		end
 		body[i].content = body[i].content:gsub("<(:%w*:)%d+>", "%1") -- custom emoji fix
 
