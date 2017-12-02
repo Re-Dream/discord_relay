@@ -32,7 +32,6 @@ if not http.Loaded then
 	timer.Create("HTTPLoadedCheck", 3, 0, function()
 		local ok, err = pcall(function()
 			if not http.Loaded then
-				print("checkHTTP type: ", type(checkHTTP))
 				checkHTTP()
 			else
 				hook.Run("HTTPLoaded")
@@ -195,6 +194,12 @@ function DiscordRelay.HandleChat(code, body, headers)
 				local toreplace = "@" .. username
 				body[i].content = string.gsub(body[i].content, tofind, toreplace)
 			end
+		end
+		if body[i].attachments then
+			for _, attachment in next, body[i].attachments do
+				body[i].content = attachment.url .. " " .. body[i].content
+			end
+			body[i].content = "\n" .. body[i].content
 		end
 		body[i].content = body[i].content:gsub("<(:%w*:)%d+>", "%1") -- custom emoji fix
 
