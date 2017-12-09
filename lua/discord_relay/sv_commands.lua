@@ -4,6 +4,7 @@ DiscordRelay.AdminRoles = { -- TODO: Use permission system instead
 	["282267464941699072"] = true, -- Boss of this Gym
 	["293169922069102592"] = true, -- Colonel
 	["284101946158219264"] = true, -- Janitor
+	["290498397910073355"] = true, -- Lua
 }
 function DiscordRelay.IsMemberAdmin(member)
 	for roleId, _ in next, DiscordRelay.AdminRoles do
