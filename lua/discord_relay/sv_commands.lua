@@ -234,10 +234,10 @@ DiscordRelay.Commands = {
 hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
 	local rocket = mingeban.CreateCommand({"rocket", "liftoff"}, function(caller, line)
 		if IsValid(caller) then
-			caller:ChatAddText(Color(155, 255, 64), 'rocket - Running command "'.. line .. '"...')
+			caller:ChatAddText(Color(155, 255, 64), 'rocket - Running command "' .. line .. '"...')
 		end
 
-		Msg"[rocket] "print('Running command "'.. line .. '"...')
+		Msg"[rocket] "print('Running command "' .. line .. '"...')
 
 		local t_post = {
 			cmd = line
