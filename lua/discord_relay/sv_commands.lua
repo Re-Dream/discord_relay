@@ -133,31 +133,32 @@ DiscordRelay.Commands = {
 	ban = function(msg, line)
 		if not banni then return end
 
-		local allowed = DiscordRelay.IsMemberAdmin(msg.author)
-		if allowed then
-			local args = mingeban.utils.parseArgs(line)
-			if not args[1] then
-				DiscordRelay.SendToDiscordRaw(nil, nil, "Missing arguments?")
-			end
-
-			if not args[2] then
-				args[2] = "1d"
-			end
-
-			if not args[3] then
-				args[3] = "No reason specified"
-			end
-
-			RunConsoleCommand("mingeban", "banni", args[1], args[2], args[3])
-		else
-			local msg = {
+		local admin = DiscordRelay.IsMemberAdmin(msg.author)
+		if not admin then
+			DiscordRelay.SendToDiscordRaw(nil, nil, {
 				{
 					title = "No access!",
 					color = DiscordRelay.HexColors.Red
 				}
-			}
-			DiscordRelay.SendToDiscordRaw(nil, nil, msg)
+			})
+			return
 		end
+
+		local args = mingeban.utils.parseArgs(line)
+		if not args[1] then
+			DiscordRelay.SendToDiscordRaw(nil, nil, "Missing arguments?")
+			return
+		end
+
+		if not args[2] then
+			args[2] = "1d"
+		end
+
+		if not args[3] then
+			args[3] = "No reason specified"
+		end
+
+		RunConsoleCommand("mingeban", "banni", args[1], args[2], args[3])
 	end,
 	rocket = function(msg, line)
 		local admin = DiscordRelay.IsMemberAdmin(msg.author)
