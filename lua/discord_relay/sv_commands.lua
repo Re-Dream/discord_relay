@@ -133,7 +133,7 @@ DiscordRelay.Commands = {
 		if not banni then return end
 
 		local allowed = DiscordRelay.IsMemberAdmin(msg.author)
-		local args = args:Split(",")
+		local args = mingeban.utils.parseArgs(args)
 		if allowed then
 			if not args[1] then
 				DiscordRelay.SendToDiscordRaw(nil, nil 'Missing arguments?')
