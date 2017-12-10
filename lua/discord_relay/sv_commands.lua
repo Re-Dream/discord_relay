@@ -147,7 +147,7 @@ DiscordRelay.Commands = {
 				args[3] == 'yes'
 			end
 
-			cmd('mingeban banni "' .. args[1] .. '", "' .. args[2] .. '", ' .. '"' .. args[3] .. '"')
+			RunConsoleCommand('mingeban', 'banni', args[1], args[2], args[3])
 		else
 			local msg = {
 				{
