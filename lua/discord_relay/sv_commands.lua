@@ -129,6 +129,34 @@ DiscordRelay.Commands = {
 			}
 			DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 		end
+	ban = function(msg, args)
+		if not banni then return end
+
+		local allowed = DiscordRelay.IsMemberAdmin(msg.author)
+		local args = mingeban.utils.parseArgs(args)
+		if allowed then
+			if not args[1] then
+				DiscordRelay.SendToDiscordRaw(nil, nil 'Missing arguments?')
+			end
+
+			if not args[2] then
+				args[2] = '1d'
+			end
+
+			if not args[3] then
+				args[3] == 'yes'
+			end
+
+			RunConsoleCommand('mingeban', 'banni', args[1], args[2], args[3])
+		else
+			local msg = {
+				{
+					title = "No access!",
+					color = DiscordRelay.HexColors.Red
+				}
+			}
+			DiscordRelay.SendToDiscordRaw(nil, nil, msg)
+		end
 	end,
 	rocket = function(msg, args)
 		local admin = DiscordRelay.IsMemberAdmin(msg.author)
