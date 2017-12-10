@@ -83,11 +83,11 @@ DiscordRelay.Commands = {
 			}
 		})
 	end,
-	l = function(msg, args)
+	l = function(msg, line)
 		local nick = DiscordRelay.GetMemberNick(msg.author)
 		local admin = DiscordRelay.IsMemberAdmin(msg.author)
 		if admin then
-			MsgC(COLOR_DISCORD, "[Discord Lua] ", COLOR_MESSAGE, "from ", COLOR_USERNAME, nick .. ": ", COLOR_MESSAGE, args, "\n")
+			MsgC(COLOR_DISCORD, "[Discord Lua] ", COLOR_MESSAGE, "from ", COLOR_USERNAME, nick .. ": ", COLOR_MESSAGE, line, "\n")
 			local print = _G.print
 			_G.print = function(...)
 				local args = {...}
@@ -101,11 +101,11 @@ DiscordRelay.Commands = {
 				end
 				DiscordRelay.SendToDiscordRaw(nil, nil, str)
 			end
-			local func = CompileString("return " .. args, "discord_lua", false)
+			local func = CompileString("return " .. line, "discord_lua", false)
 			if isfunction(func) then
 				doEval(func)
 			else
-				func = CompileString(args, "discord_lua", false)
+				func = CompileString(line, "discord_lua", false)
 				if isfunction(func) then
 					doEval(func)
 				else
@@ -129,25 +129,26 @@ DiscordRelay.Commands = {
 			}
 			DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 		end
-	ban = function(msg, args)
+	end,
+	ban = function(msg, line)
 		if not banni then return end
 
 		local allowed = DiscordRelay.IsMemberAdmin(msg.author)
-		local args = mingeban.utils.parseArgs(args)
 		if allowed then
+			local args = mingeban.utils.parseArgs(line)
 			if not args[1] then
-				DiscordRelay.SendToDiscordRaw(nil, nil 'Missing arguments?')
+				DiscordRelay.SendToDiscordRaw(nil, nil, "Missing arguments?")
 			end
 
 			if not args[2] then
-				args[2] = '1d'
+				args[2] = "1d"
 			end
 
 			if not args[3] then
-				args[3] == 'yes'
+				args[3] = "No reason specified"
 			end
 
-			RunConsoleCommand('mingeban', 'banni', args[1], args[2], args[3])
+			RunConsoleCommand("mingeban", "banni", args[1], args[2], args[3])
 		else
 			local msg = {
 				{
@@ -158,7 +159,7 @@ DiscordRelay.Commands = {
 			DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 		end
 	end,
-	rocket = function(msg, args)
+	rocket = function(msg, line)
 		local admin = DiscordRelay.IsMemberAdmin(msg.author)
 		if not admin then
 			DiscordRelay.SendToDiscordRaw(nil, nil, {
@@ -170,10 +171,10 @@ DiscordRelay.Commands = {
 			return
 		end
 
-		DiscordRelay.SendToDiscordRaw(nil, nil, 'Running rocket command "' .. args .. '"...')
+		DiscordRelay.SendToDiscordRaw(nil, nil, 'Running rocket command "' .. line .. '"...')
 
 		local t_post = {
-			cmd = args
+			cmd = line
 		}
 		local t_struct = {
 			failed = function(err)
@@ -195,7 +196,7 @@ DiscordRelay.Commands = {
 					end
 					msg = {
 						{
-							title = 'Rocket command "' .. args .. '" run, result:',
+							title = 'Rocket command "' .. line .. '" run, result:',
 							description = desc,
 							color = DiscordRelay.HexColors.Purple
 						}
