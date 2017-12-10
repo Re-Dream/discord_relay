@@ -225,6 +225,9 @@ hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
 
 					Msg"[rocket] "MsgC(Color(255, 64, 64), "500 Internal Error\n")
 				else
+					body = body:gsub("\n", "", 1) -- remove starting newline
+					body = "rocket: " .. body
+
 					if IsValid(caller) then
 						caller:ChatAddText(Color(155, 255, 64), 'rocket - Command "' .. line .. '" run, result in console')
 
@@ -234,7 +237,7 @@ hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
 					end
 
 					Msg"[rocket] "print('Command "' .. line .. '" run, result in console')
-					MsgC(Color(192, 192, 192), body .. "\n")
+					MsgC(Color(192, 192, 192), body)
 				end
 			end,
 			method = "POST",
