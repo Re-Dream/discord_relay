@@ -323,7 +323,9 @@ hook.Add("player_connect", "Discord_Player_Connect", function(ply)
 		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end)
 end)
-hook.Add("PlayerDisconnected", "Discord_Player_Disconnect", function(ply)
+gameevent.Listen("player_disconnect")
+hook.Add("player_disconnect", "Discord_Player_Disconnect", function(data)
+	local ply = Player(data.userid)
 	local nick = ply.RealName and ply:RealName() or ply:Nick()
 	local sid = ply:SteamID()
 	local sid64 = ply:SteamID64()
@@ -333,7 +335,7 @@ hook.Add("PlayerDisconnected", "Discord_Player_Disconnect", function(ply)
 		local msg = {
 			{
 				author = {
-					name = nick .. "  left the server.",
+					name = nick .. "  left the server." .. (data.reason and (" (" .. data.reason .. ")") or ""),
 					url = "https://steamcommunity.com/profiles/" .. sid64,
 					icon_url = avatar
 				},
