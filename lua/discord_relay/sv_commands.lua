@@ -24,7 +24,7 @@ local function doEval(func)
 		msg = {
 			{
 				title = "Lua Error:",
-				description = func,
+				description = tostring(ret[1]),
 				color = DiscordRelay.HexColors.Red
 			}
 		}
@@ -34,7 +34,7 @@ local function doEval(func)
 	if ret[1] then
 		for k, v in next, ret do
 			-- TODO: pretty print tables
-			ret[k] = tostring(v)
+			ret[k] = tostring(v:gsub("`", "\\`"))
 		end
 		local res = "```lua\n" .. table.concat(ret, "\t") .. "```"
 		if #res >= 2000 then
@@ -91,15 +91,17 @@ DiscordRelay.Commands = {
 			local print = _G.print
 			_G.print = function(...)
 				local args = {...}
-				local str = "```lua\n%s```"
-				for k, v in next, args do
-					args[k] = tostring(v):gsub("`", "\\`")
+				if args[1] then
+					local str = "```lua\n%s```"
+					for k, v in next, args do
+						args[k] = tostring(v):gsub("`", "\\`")
+					end
+					str = str:format(table.concat(args, "\t"))
+					if #str >= 2000 then
+						str = str:sub(1, 1970) .. "```[...]\noutput truncated"
+					end
+					DiscordRelay.SendToDiscordRaw(nil, nil, str)
 				end
-				str = str:format(table.concat(args, "\t"))
-				if #str >= 2000 then
-					str = str:sub(1, 1970) .. "```[...]\noutput truncated"
-				end
-				DiscordRelay.SendToDiscordRaw(nil, nil, str)
 			end
 			local func = CompileString("return " .. line, "discord_lua", false)
 			if isfunction(func) then
