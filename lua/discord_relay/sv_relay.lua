@@ -326,9 +326,9 @@ end)
 gameevent.Listen("player_disconnect")
 hook.Add("player_disconnect", "Discord_Player_Disconnect", function(data)
 	local ply = Player(data.userid)
-	local nick = ply.RealName and ply:RealName() or ply:Nick()
-	local sid = ply:SteamID()
-	local sid64 = ply:SteamID64()
+	local nick = IsValid(ply) and (ply.RealName and ply:RealName() or ply:Nick()) or data.name
+	local sid = ply.SteamID and ply:SteamID() or data.networkid
+	local sid64 = ply.SteamID64 and ply:SteamID64() or util.SteamIDTo64(data.networkid)
 
 	http.Fetch("http://steamcommunity.com/profiles/" .. sid64 .. "?xml=1", function(content, size)
 		local avatar = content:match("<avatarFull><!%[CDATA%[(.-)%]%]></avatarFull>")
