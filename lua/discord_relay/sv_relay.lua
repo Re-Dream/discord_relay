@@ -314,7 +314,9 @@ hook.Add("player_connect", "Discord_Player_Connect", function(ply)
 					url = "https://steamcommunity.com/profiles/" .. sid64,
 					icon_url = avatar
 				},
-				description = sid .. " / " .. sid64,
+				footer = {
+					text = sid .. " / " .. sid64,
+				},
 				color = DiscordRelay.HexColors.Green
 			}
 		}
@@ -335,11 +337,14 @@ hook.Add("player_disconnect", "Discord_Player_Disconnect", function(data)
 		local msg = {
 			{
 				author = {
-					name = nick .. "  left the server." .. (data.reason and (" (" .. data.reason .. ")") or ""),
+					name = nick .. "  left the server.",
 					url = "https://steamcommunity.com/profiles/" .. sid64,
 					icon_url = avatar
 				},
-				description = sid .. " / " .. sid64,
+				description = data.reason and ("Reason: " .. data.reason) or nil,
+				footer = {
+					text = sid .. " / " .. sid64
+				},
 				color = DiscordRelay.HexColors.Red
 			}
 		}
