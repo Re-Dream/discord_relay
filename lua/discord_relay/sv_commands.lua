@@ -230,7 +230,11 @@ DiscordRelay.Commands = {
 				color = DiscordRelay.HexColors.Purple
 			}
 		})
-	end
+	end,
+	rcon = function(msg, line)
+		cmd(line)
+		DiscordRelay.SendToDiscordRaw(nil, nil, ":white_check_mark:")
+	end,
 }
 
 hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
