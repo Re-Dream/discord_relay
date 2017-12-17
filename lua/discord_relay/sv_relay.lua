@@ -320,7 +320,7 @@ hook.Add("player_connect", "Discord_Player_Connect", function(ply)
 				color = DiscordRelay.HexColors.Green
 			}
 		}
-		msg[1].description = msg[1].description .. "\n\n[Join](https://gmlounge.us/join)"
+		msg[1].description = "[:door: Join](https://gmlounge.us/join)"
 
 		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end)
@@ -348,7 +348,7 @@ hook.Add("player_disconnect", "Discord_Player_Disconnect", function(data)
 				color = DiscordRelay.HexColors.Red
 			}
 		}
-		msg[1].description = msg[1].description .. "\n\n[Join](https://gmlounge.us/join)"
+		msg[1].description = msg[1].description .. "\n\n[:door: Join](https://gmlounge.us/join)"
 
 		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end)
@@ -365,7 +365,7 @@ hook.Add("HTTPLoaded", "Discord_Announce_Active", function()
 			color = DiscordRelay.HexColors.Yellow
 		}
 	}
-	msg[1].description = msg[1].description .. "\n\n[Join](https://gmlounge.us/join)"
+	msg[1].description = msg[1].description .. "\n\n[:door: Join](https://gmlounge.us/join)"
 
 	DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	hook.Remove("HTTPLoaded", "Discord_Announce_Active") -- Just in case
