@@ -84,53 +84,54 @@ DiscordRelay.Commands = {
 		})
 	end,
 	l = function(msg, line)
-		local nick = DiscordRelay.GetMemberNick(msg.author)
 		local admin = DiscordRelay.IsMemberAdmin(msg.author)
-		if admin then
-			MsgC(COLOR_DISCORD, "[Discord Lua] ", COLOR_MESSAGE, "from ", COLOR_USERNAME, nick .. ": ", COLOR_MESSAGE, line, "\n")
-			local print = _G.print
-			_G.print = function(...)
-				local args = {...}
-				if args[1] then
-					local str = "```lua\n%s```"
-					for k, v in next, args do
-						args[k] = tostring(v):gsub("`", "\\`")
-					end
-					str = str:format(table.concat(args, "\t"))
-					if #str >= 2000 then
-						str = str:sub(1, 1970) .. "```[...]\noutput truncated"
-					end
-					DiscordRelay.SendToDiscordRaw(nil, nil, str)
-				end
-			end
-			local func = CompileString("return " .. line, "discord_lua", false)
-			if isfunction(func) then
-				doEval(func)
-			else
-				func = CompileString(line, "discord_lua", false)
-				if isfunction(func) then
-					doEval(func)
-				else
-					local msg = {
-						{
-							title = "Lua Error:",
-							description = func,
-							color = DiscordRelay.HexColors.Red
-						}
-					}
-					DiscordRelay.SendToDiscordRaw(nil, nil, msg)
-				end
-			end
-			_G.print = print
-		else
-			local msg = {
+		if not admin then
+			DiscordRelay.SendToDiscordRaw(nil, nil, {
 				{
 					title = "No access!",
 					color = DiscordRelay.HexColors.Red
 				}
-			}
-			DiscordRelay.SendToDiscordRaw(nil, nil, msg)
+			})
+			return
 		end
+
+		local nick = DiscordRelay.GetMemberNick(msg.author)
+
+		MsgC(COLOR_DISCORD, "[Discord Lua] ", COLOR_MESSAGE, "from ", COLOR_USERNAME, nick .. ": ", COLOR_MESSAGE, line, "\n")
+		local print = _G.print
+		_G.print = function(...)
+			local args = {...}
+			if args[1] then
+				local str = "```lua\n%s```"
+				for k, v in next, args do
+					args[k] = tostring(v):gsub("`", "\\`")
+				end
+				str = str:format(table.concat(args, "\t"))
+				if #str >= 2000 then
+					str = str:sub(1, 1970) .. "```[...]\noutput truncated"
+				end
+				DiscordRelay.SendToDiscordRaw(nil, nil, str)
+			end
+		end
+		local func = CompileString("return " .. line, "discord_lua", false)
+		if isfunction(func) then
+			doEval(func)
+		else
+			func = CompileString(line, "discord_lua", false)
+			if isfunction(func) then
+				doEval(func)
+			else
+				local msg = {
+					{
+						title = "Lua Error:",
+						description = func,
+						color = DiscordRelay.HexColors.Red
+					}
+				}
+				DiscordRelay.SendToDiscordRaw(nil, nil, msg)
+			end
+		end
+		_G.print = print
 	end,
 	ban = function(msg, line)
 		if not banni then return end
@@ -232,6 +233,17 @@ DiscordRelay.Commands = {
 		})
 	end,
 	rcon = function(msg, line)
+		local admin = DiscordRelay.IsMemberAdmin(msg.author)
+		if not admin then
+			DiscordRelay.SendToDiscordRaw(nil, nil, {
+				{
+					title = "No access!",
+					color = DiscordRelay.HexColors.Red
+				}
+			})
+			return
+		end
+
 		cmd(line)
 		DiscordRelay.SendToDiscordRaw(nil, nil, ":white_check_mark:")
 	end,
