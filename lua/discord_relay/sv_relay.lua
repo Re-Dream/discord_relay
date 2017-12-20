@@ -200,7 +200,7 @@ function DiscordRelay.HandleChat(code, body, headers)
 				body[i].content = attachment.url .. " " .. body[i].content
 			end
 		end
-		body[i].content = body[i].content:gsub("<(:%w*:)%d+>", "%1") -- custom emoji fix
+		body[i].content = body[i].content:gsub("<(:[^%s.]*:)%d+>", "%1") -- custom emoji fix
 
 		if gotitalready == false then
 			MsgC(COLOR_DISCORD, "[Discord] ", COLOR_USERNAME, body[i].author.username, COLOR_COLON, ": ", COLOR_MESSAGE, body[i].content, "\n")
@@ -282,7 +282,7 @@ hook.Add("PlayerSay", "Discord_Webhook_Chat", function(ply, text, teamchat)
 
 	local text = text:gsub("(@everyone)", "\\@no one")
 	if DiscordRelay.Members then
-		text = text:gsub("@(%w+)", function(name)
+		text = text:gsub("@([^%s.]*)", function(name)
 			for _, user in next, DiscordRelay.Members do
 				local username = user.nick or user.user.username
 				if username:lower():match(name:lower()) then
