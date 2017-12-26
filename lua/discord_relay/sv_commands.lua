@@ -34,7 +34,7 @@ local function doEval(func)
 	if ret[1] then
 		for k, v in next, ret do
 			-- TODO: pretty print tables
-			ret[k] = tostring(v:gsub("`", "\\`"))
+			ret[k] = tostring(v):gsub("`", "\\`")
 		end
 		local res = "```lua\n" .. table.concat(ret, "\t") .. "```"
 		if #res >= 2000 then
