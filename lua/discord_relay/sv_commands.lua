@@ -17,7 +17,8 @@ end
 
 local function doEval(func)
 	local msg = {}
-	local env = setmetatable(_G, {
+	local __G = table.copy(_G)
+	local env = setmetatable(__G, {
 			__index = function(self, c)
 				return c and easylua and easylua.FindEntity(c)
 			end
