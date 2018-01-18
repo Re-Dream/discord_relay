@@ -16,13 +16,11 @@ function DiscordRelay.IsMemberAdmin(member)
 end
 
 local function doEval(func)
-	local msg = {}
-	local __G = table.Copy(_G)
-	local env = setmetatable(__G, {
-			__index = function(self, c)
-				return c and easylua and easylua.FindEntity(c)
-			end
-	})
+	local msg = {}	
+	local __G = {}
+	for i, v in pairs(_G) do __G[i] = v end
+	
+	local env = setmetatable(__G, getmetatable(easylua.EnvMeta))
 	setfenv(func, env)
 	
 	local ret = { pcall(func) }
@@ -310,4 +308,3 @@ end)
 if istable(GAMEMODE) and mingeban then
 	hook.GetTable().MingebanInitialized["DiscordRelay_rocketcommand"]()
 end
-
