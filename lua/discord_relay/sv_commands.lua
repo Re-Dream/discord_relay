@@ -17,6 +17,13 @@ end
 
 local function doEval(func)
 	local msg = {}
+	local env = setmetatable(_G, {
+			__index = function(self, c)
+				return c and easylua and easylua.FindEntity(c)
+			end
+	})
+	setfenv(func, env)
+	
 	local ret = { pcall(func) }
 	local ok = ret[1]
 	table.remove(ret, 1)
