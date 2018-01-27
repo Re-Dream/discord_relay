@@ -253,6 +253,15 @@ DiscordRelay.Commands = {
 		cmd(line)
 		DiscordRelay.SendToDiscordRaw(nil, nil, ":white_check_mark:")
 	end,
+	seen = function(msg, line)
+		DiscordRelay.SendToDiscordRaw(nil, nil, {
+			{
+				title = "Results",
+				description = seen and seen.Compute(line) or 'Something bad happened.',
+				color = DiscordRelay.HexColors.Green
+			}
+		})
+	end
 }
 
 hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
