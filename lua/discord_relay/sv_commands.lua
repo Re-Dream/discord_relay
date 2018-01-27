@@ -257,7 +257,7 @@ DiscordRelay.Commands = {
 		DiscordRelay.SendToDiscordRaw(nil, nil, {
 			{
 				title = "Results",
-				description = seen and seen.Compute(line) or 'Something bad happened.',
+				description = ('```%s```'):format(seen and seen.Compute(line):gsub('``', '`​​`') or 'Something bad happened.')
 				color = DiscordRelay.HexColors.Green
 			}
 		})
