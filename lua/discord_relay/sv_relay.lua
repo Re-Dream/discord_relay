@@ -320,7 +320,7 @@ hook.Add("player_connect", "Discord_Player_Connect", function(ply)
 				color = DiscordRelay.HexColors.Green
 			}
 		}
-		msg[1].description = "[:door: Join](https://gmlounge.us/join)"
+		msg[1].description = "[:door: Join](https://re-dream.org/join)"
 
 		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end)
@@ -348,7 +348,7 @@ hook.Add("player_disconnect", "Discord_Player_Disconnect", function(data)
 				color = DiscordRelay.HexColors.Red
 			}
 		}
-		msg[1].description = msg[1].description .. "\n\n[:door: Join](https://gmlounge.us/join)"
+		msg[1].description = msg[1].description .. "\n\n[:door: Join](https://re-dream.org/join)"
 
 		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end)
@@ -358,14 +358,14 @@ hook.Add("HTTPLoaded", "Discord_Announce_Active", function()
 		{
 			author = {
 				name = GetHostName(),
-				url = "https://gmlounge.us/join",
-				icon_url = "https://gmlounge.us/media/redream-logo.png"
+				url = "https://re-dream.org/join",
+				icon_url = "https://re-dream.org/media/redream-logo.png"
 			},
 			description = "is now online, playing `" .. game.GetMap() .. "`.",
 			color = DiscordRelay.HexColors.Yellow
 		}
 	}
-	msg[1].description = msg[1].description .. "\n\n[:door: Join](https://gmlounge.us/join)"
+	msg[1].description = msg[1].description .. "\n\n[:door: Join](https://re-dream.org/join)"
 
 	DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	hook.Remove("HTTPLoaded", "Discord_Announce_Active") -- Just in case

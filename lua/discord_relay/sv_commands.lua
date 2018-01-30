@@ -16,13 +16,13 @@ function DiscordRelay.IsMemberAdmin(member)
 end
 
 local function doEval(func)
-	local msg = {}	
+	local msg = {}
 	local __G = {}
 	for i, v in pairs(_G) do __G[i] = v end
-	
+
 	local env = setmetatable(__G, getmetatable(easylua.EnvMeta))
 	setfenv(func, env)
-	
+
 	local ret = { pcall(func) }
 	local ok = ret[1]
 	table.remove(ret, 1)
@@ -75,8 +75,8 @@ DiscordRelay.Commands = {
 			{
 				author = {
 					name = GetHostName(),
-					url = "http://gmlounge.us/join",
-					icon_url = "https://gmlounge.us/media/redream-logo.png"
+					url = "https://re-dream.org/join",
+					icon_url = "https://re-dream.org/media/redream-logo.png"
 				},
 				description = uptime .. " - :map: **Map**: `" .. game.GetMap() .. "`",
 				fields = {
@@ -215,7 +215,7 @@ DiscordRelay.Commands = {
 				DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 			end,
 			method = "POST",
-			url = "https://gmlounge.us/redream/rcon/bot/index.php",
+			url = "https://re-dream.org/rcon/bot/index.php",
 			parameters = t_post,
 			headers = {
 				Authorization = "Bot " .. DiscordRelay.BotToken
@@ -304,7 +304,7 @@ hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
 				end
 			end,
 			method = "POST",
-			url = "https://gmlounge.us/redream/rcon/bot/index.php",
+			url = "https://re-dream.org/rcon/bot/index.php",
 			parameters = t_post,
 			headers = {
 				Authorization = "Bot " .. DiscordRelay.BotToken
