@@ -254,11 +254,24 @@ DiscordRelay.Commands = {
 		DiscordRelay.SendToDiscordRaw(nil, nil, ":white_check_mark:")
 	end,
 	seen = function(msg, line)
+		local ply = mingeban and mingeban.utils.findPlayer(line) or Entity(-1) -- uhh, maybe will change in future???
+		ply = type(ply) == 'table' and ply[1] or Entity(-1)
+		if IsValid(ply) and type(ply) == 'Player' then
+			DiscordRelay.SendToDiscordRaw(nil, nil, {
+				{
+					title = "Results",
+					description = ('```%s is currently online.```'):format(ply:Name()),
+					color = DiscordRelay.HexColors.LightBlue
+				}
+			})
+			return
+		end
+		
 		DiscordRelay.SendToDiscordRaw(nil, nil, {
 			{
 				title = "Results",
 				description = ('```%s```'):format(seen and seen.Compute(line):gsub('``', '`​​`') or 'Something bad happened.'),
-				color = DiscordRelay.HexColors.Green
+				color = DiscordRelay.HexColors.Purple
 			}
 		})
 	end
