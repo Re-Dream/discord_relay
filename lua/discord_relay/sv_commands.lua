@@ -266,7 +266,7 @@ DiscordRelay.Commands = {
 			})
 			return
 		end
-		
+
 		DiscordRelay.SendToDiscordRaw(nil, nil, {
 			{
 				title = "Results",
@@ -278,8 +278,15 @@ DiscordRelay.Commands = {
 }
 
 hook.Add("MingebanInitialized", "DiscordRelay_rocketcommand", function()
+	local oldRocket = mingeban.GetCommand("rocket").callback
+
 	local rocket = mingeban.CreateCommand({"rocket", "liftoff"}, function(caller, line)
 		if IsValid(caller) then
+			if line:Trim() == "" then
+				oldRocket(caller)
+				return
+			end
+
 			caller:ChatAddText(Color(155, 255, 64), 'rocket - Running command "' .. line .. '"...')
 		end
 
