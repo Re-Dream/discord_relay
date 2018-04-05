@@ -87,11 +87,11 @@ function DiscordRelay.VerifyMessageSuccess(code, body, headers)
 end
 
 DiscordRelay.HexColors = {
-	Red = 0xFF4040,
-	LightBlue = 0x40C0FF,
-	Green = 0x7FFF40,
-	Purple = 0x9B65BD,
-	Yellow = 0xFFFF40
+	Red = 0xC73232,
+	LightBlue = 0x3295C7,
+	Green = 0x32C643,
+	Purple = 0xA369C7,
+	Teal = 0x32C79A
 }
 function DiscordRelay.SendToDiscordRaw(username, avatar, message)
 	local t_post = {
@@ -320,7 +320,7 @@ hook.Add("player_connect", "Discord_Player_Connect", function(ply)
 				color = DiscordRelay.HexColors.Green
 			}
 		}
-		msg[1].description = "[:door: Join](https://re-dream.org/join)"
+		-- msg[1].description = "[:door: Join](https://re-dream.org/join)"
 
 		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end)
@@ -348,7 +348,7 @@ hook.Add("player_disconnect", "Discord_Player_Disconnect", function(data)
 				color = DiscordRelay.HexColors.Red
 			}
 		}
-		msg[1].description = msg[1].description .. "\n\n[:door: Join](https://re-dream.org/join)"
+		msg[1].description = msg[1].description -- .. "\n\n[:door: Join](https://re-dream.org/join)"
 
 		DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	end)
@@ -362,10 +362,10 @@ hook.Add("HTTPLoaded", "Discord_Announce_Active", function()
 				icon_url = "https://re-dream.org/media/redream-logo.png"
 			},
 			description = "is now online, playing `" .. game.GetMap() .. "`.",
-			color = DiscordRelay.HexColors.Yellow
+			color = DiscordRelay.HexColors.Teal
 		}
 	}
-	msg[1].description = msg[1].description .. "\n\n[:door: Join](https://re-dream.org/join)"
+	msg[1].description = msg[1].description -- .. "\n\n[:door: Join](https://re-dream.org/join)"
 
 	DiscordRelay.SendToDiscordRaw(nil, nil, msg)
 	hook.Remove("HTTPLoaded", "Discord_Announce_Active") -- Just in case
