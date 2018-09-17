@@ -280,8 +280,8 @@ hook.Add("PlayerSay", "Discord_Webhook_Chat", function(ply, text, teamchat)
 	local sid = ply:SteamID()
 	local sid64 = ply:SteamID64()
 
-	local text = text:gsub("(@everyone)", "\\@everyone")
-	local text = text:gsub("(@here)", "\\@here")
+	local text = text:gsub("(@everyone)", "[at]everyone")
+	local text = text:gsub("(@here)", "[at]here")
 	if DiscordRelay.Members then
 		text = text:gsub("@([^%s.]*)", function(name)
 			if name:len() < 1 then return end
